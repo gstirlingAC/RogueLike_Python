@@ -4,16 +4,9 @@ Author: Gordon Stirling
 Python/Pygame project
 http://www1.ayrshire.ac.uk
 
-Tutorial 3 -  Create the main game loop
-In this tutorial we begin to flesh out a structure for our code, 
-specifically the main game loop.  This time we will replace the
-pseudocode with actual python code.  We will define the basic
-game loop and give the player a way to quit out of the program. 
-
-We will also create new file (module) which will hold all of our 
-constant variables (variables whose values never change).
-
-In the next tutorial we will draw something to the newly created
+Tutorial 4 -  Draw to the surface - Pseudocode
+In this tutorial we will create a pseudocode blueprint 
+for a function which will be used to draw objects to the 
 surface.
 
 """
@@ -58,6 +51,15 @@ def game_init():
     #create window (surface)
     SURFACE_MAIN = pygame.display.set_mode((settings.SURFACE_WIDTH, settings.SURFACE_HEIGHT))
 
+
+def draw_game():
+    '''We will use this function to draw objects to the surface'''
+
+    #TODO clear the surface
+    #TODO draw the map
+    #TODO draw the character
+    # update the display
+    pygame.display.flip()
 
 # call the functions to make the game run
 if __name__ == '__main__':

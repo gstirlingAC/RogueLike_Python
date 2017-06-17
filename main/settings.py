@@ -25,6 +25,7 @@ DEFAULT_BG_COLOUR = GREY
 
 # sprites
 S_PLAYER = pygame.image.load("res/player.png")
+S_ENEMY = pygame.image.load("res/enemy.png")
 S_WALL = pygame.image.load("res/wall_v1.png")
 S_FLOOR = pygame.image.load("res/floor.png")
 

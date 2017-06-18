@@ -7,8 +7,11 @@ http://www1.ayrshire.ac.uk
 Sprites created by: DawnBringer
 https://opengameart.org/content/dawnlike-16x16-universal-rogue-like-tileset-v181
 
-Tutorial 8 -  Setting up a component-oriented system
-In this tutorial we are going to set up a system where our objects will be categorised as specific components which will allow us to define between the different objects in the game such as enemies, items etc.  In future tutorials we will be able to add attributes to each of these components such as health, damage etc.
+Tutorial 9 -  Thinking turn-based
+In this tutorial we are going to implement the beginnings of a turn-based 
+system.  We will be making mostly just minor changes existing code (refactoring).
+Enemy objects will be controlled by a new ai component, and will only move
+when the player has moved.
 
 """
 
@@ -25,17 +28,21 @@ class struct_Tile:
     def __init__(self, block_path):
         self.block_path = block_path
 
+
 # object definitions
 class obj_Actor:
-    def __init__(self, x, y, name_object, sprite, creature = None):
+    def __init__(self, x, y, name_object, sprite, creature = None, ai = None):
         self.x = x # map address
         self.y = y # map address
         self.sprite = sprite
+        self.creature = creature
+        self.ai = ai
 
         if creature:
-            self.creature = creature
             creature.owner = self
-
+        
+        if ai:
+            ai.owner = self
 
     def draw(self):
         SURFACE_MAIN.blit(self.sprite, (self.x * settings.CELL_WIDTH, self.y * settings.CELL_HEIGHT))
@@ -53,13 +60,23 @@ class com_Creature:
         self.name_instance = name_instance
         self.hp = hp
 
+
 #TODO define Item component - consumables etc.
 class com_Item:
     pass
 
+
 #TODO define Container component - loot chests etc.
 class com_Container:
     pass
+
+
+#TODO define AI component - turns, attacking, moving etc.
+class com_AI_Test:
+    '''Once per turn, execute'''
+
+    def take_turn(self):
+        self.owner.move(-1, 0)
 
 
 # map definition
@@ -96,18 +113,47 @@ def draw_game():
     draw_map(GAME_MAP)
 
     # draw the character
-    ENEMY.draw()
-    PLAYER.draw()
+    for obj in GAME_OBJECTS:
+        obj.draw()
 
     # update the display
     pygame.display.flip()
+
+
+def game_player_input():
+    # get player input
+    events = pygame.event.get()
+
+    #  process input - more events to come
+    for event in events:
+        if event.type == pygame.QUIT:
+            return "QUIT"
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP:
+                PLAYER.move(0, -1)
+                return "player_moved"
+
+            if event.key == pygame.K_DOWN:
+                PLAYER.move(0, 1)
+                return "player_moved"
+
+            if event.key == pygame.K_LEFT:
+                PLAYER.move(-1, 0)
+                return "player_moved"
+
+            if event.key == pygame.K_RIGHT:
+                PLAYER.move(1, 0)
+                return "player_moved"
+
+    return "no action"
 
 
 def game_init():
     '''This function initialises the main window and pygame'''
 
     # make a global (available to all modules) variable to hold the game window (surface)
-    global SURFACE_MAIN, GAME_MAP, PLAYER, ENEMY
+    global SURFACE_MAIN, GAME_MAP, PLAYER, ENEMY, GAME_OBJECTS
 
     # initialise pygame
     pygame.init()
@@ -120,8 +166,12 @@ def game_init():
     creature_com1 = com_Creature("Del")
     creature_com2 = com_Creature("Rodney")
 
+    ai_com = com_AI_Test()
+
     PLAYER = obj_Actor(0, 0, "hero", settings.S_PLAYER, creature = creature_com1)
-    ENEMY = obj_Actor(10, 11, "dark guard", settings.S_ENEMY, creature = creature_com2)
+    ENEMY = obj_Actor(20, 10, "dark guard", settings.S_ENEMY, creature = creature_com2, ai = ai_com)
+
+    GAME_OBJECTS = [PLAYER, ENEMY]
 
 
 def game_main_loop():
@@ -129,24 +179,21 @@ def game_main_loop():
 
     game_quit = False
 
+    # player action definition
+    player_action = "no action"
+
     while not game_quit:
-        # get player input
-        events = pygame.event.get()
+        
+        # handle player input
+        player_action = game_player_input()
 
-        #  process input - more events to come
-        for event in events:
-            if event.type == pygame.QUIT:
-                game_quit = True
+        if player_action == "QUIT":
+            game_quit = True
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
-                    PLAYER.move(0, -1)
-                if event.key == pygame.K_DOWN:
-                    PLAYER.move(0, 1)
-                if event.key == pygame.K_LEFT:
-                    PLAYER.move(-1, 0)
-                if event.key == pygame.K_RIGHT:
-                    PLAYER.move(1, 0)
+        if player_action != "no action":
+            for obj in GAME_OBJECTS:
+                if obj.ai:
+                    obj.ai.take_turn()
 
         # draw the game
         draw_game()

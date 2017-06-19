@@ -7,12 +7,9 @@ http://www1.ayrshire.ac.uk
 Sprites created by: DawnBringer
 https://opengameart.org/content/dawnlike-16x16-universal-rogue-like-tileset-v181
 
-Tutorial 10 -  Setting up 'attack' functionality
-In this tutorial we are going to implement the attacking functionality for
-the creature object.  Attacking will be visualised through the console
-window for now.  We will also clean up some of the code and prevent both the 
-player and the enemy from being able to leave the map by adding wall pieces 
-around the edge.
+Tutorial 11 -  Creature mortality
+In this tutorial we are going to introduce the concept of death to the game.
+This tutorial will focus on being able to 'kill' the enemy creature.
 
 """
 
@@ -62,10 +59,10 @@ class obj_Actor:
                 break
         
         if target:
-            print (self.creature.name_instance + " attacks " + target.creature.name_instance)
+            print (self.creature.name_instance + " attacks " + target.creature.name_instance + " for 5 damage!")
+            target.creature.take_damage(5)
 
         if not tile_is_wall and target is None:
-
             self.x += dx
             self.y += dy
 
@@ -73,9 +70,19 @@ class obj_Actor:
 # component definitions
 class com_Creature:
     ''' Creatures have health, can attack and damage other objects '''
-    def __init__(self, name_instance, hp = 10):
+    def __init__(self, name_instance, hp = 10, has_died = None):
         self.name_instance = name_instance
+        self.maxhp = hp
         self.hp = hp
+        self.has_died = has_died
+
+    def take_damage(self, damage):
+        self.hp -= damage
+        print (self.name_instance + "'s health is " + str(self.hp) + "/" + str(self.maxhp))
+
+        if self.hp <= 0:
+            if self.has_died is not None:
+                self.has_died(self.owner)
 
 
 #TODO define Item component - consumables etc.
@@ -94,6 +101,14 @@ class com_AI_Test:
 
     def take_turn(self):
         self.owner.move(libtcod.random_get_int(0, -1, 1), libtcod.random_get_int(0, -1, 1))
+
+
+def death_enemy(enemy):
+    '''On death, enemy stops moving'''
+    print (enemy.creature.name_instance + " is dead!")
+
+    enemy.creature = None
+    enemy.ai = None
 
 
 # map definition
@@ -189,12 +204,16 @@ def game_init():
     GAME_MAP = create_map()
 
     creature_com1 = com_Creature("Del")
-    creature_com2 = com_Creature("Rodney")
+    creature_com2 = com_Creature("Rodney", has_died = death_enemy)
 
     ai_com = com_AI_Test()
 
     PLAYER = obj_Actor(1, 1, "hero", settings.S_PLAYER, creature = creature_com1)
-    ENEMY = obj_Actor(15, 10, "dark guard", settings.S_ENEMY, creature = creature_com2, ai = ai_com)
+    ENEMY = obj_Actor(15, 10, 
+                      "dark guard", 
+                      settings.S_ENEMY, 
+                      creature = creature_com2, 
+                      ai = ai_com)
 
     GAME_OBJECTS = [PLAYER, ENEMY]
 

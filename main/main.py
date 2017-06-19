@@ -7,11 +7,12 @@ http://www1.ayrshire.ac.uk
 Sprites created by: DawnBringer
 https://opengameart.org/content/dawnlike-16x16-universal-rogue-like-tileset-v181
 
-Tutorial 9 -  Thinking turn-based
-In this tutorial we are going to implement the beginnings of a turn-based 
-system.  We will be making mostly just minor changes existing code (refactoring).
-Enemy objects will be controlled by a new ai component, and will only move
-when the player has moved.
+Tutorial 10 -  Setting up 'attack' functionality
+In this tutorial we are going to implement the attacking functionality for
+the creature object.  Attacking will be visualised through the console
+window for now.  We will also clean up some of the code and prevent both the 
+player and the enemy from being able to leave the map by adding wall pieces 
+around the edge.
 
 """
 
@@ -48,7 +49,23 @@ class obj_Actor:
         SURFACE_MAIN.blit(self.sprite, (self.x * settings.CELL_WIDTH, self.y * settings.CELL_HEIGHT))
 
     def move(self, dx, dy):
-        if GAME_MAP[self.x + dx][self.y + dy].block_path == False:
+        tile_is_wall = GAME_MAP[self.x + dx][self.y + dy].block_path == True
+
+        target = None
+
+        for obj in GAME_OBJECTS:
+            if (obj is not self and 
+                obj.x == self.x + dx and 
+                obj.y == self.y + dy and 
+                obj.creature):
+                target = obj
+                break
+        
+        if target:
+            print (self.creature.name_instance + " attacks " + target.creature.name_instance)
+
+        if not tile_is_wall and target is None:
+
             self.x += dx
             self.y += dy
 
@@ -76,7 +93,7 @@ class com_AI_Test:
     '''Once per turn, execute'''
 
     def take_turn(self):
-        self.owner.move(-1, 0)
+        self.owner.move(libtcod.random_get_int(0, -1, 1), libtcod.random_get_int(0, -1, 1))
 
 
 # map definition
@@ -85,6 +102,14 @@ def create_map():
 
     new_map[10][10].block_path = True
     new_map[10][15].block_path = True
+
+    for x in range(settings.MAP_WIDTH):
+        new_map[x][0].block_path = True
+        new_map[x][settings.MAP_HEIGHT-1].block_path = True
+
+    for y in range(settings.MAP_HEIGHT):
+        new_map[0][y].block_path = True
+        new_map[settings.MAP_WIDTH-1][y].block_path = True
 
     return new_map
 
@@ -159,7 +184,7 @@ def game_init():
     pygame.init()
 
     #create window (surface)
-    SURFACE_MAIN = pygame.display.set_mode((settings.SURFACE_WIDTH, settings.SURFACE_HEIGHT))
+    SURFACE_MAIN = pygame.display.set_mode((settings.MAP_WIDTH * settings.CELL_WIDTH, settings.MAP_HEIGHT * settings.CELL_HEIGHT))
 
     GAME_MAP = create_map()
 
@@ -168,8 +193,8 @@ def game_init():
 
     ai_com = com_AI_Test()
 
-    PLAYER = obj_Actor(0, 0, "hero", settings.S_PLAYER, creature = creature_com1)
-    ENEMY = obj_Actor(20, 10, "dark guard", settings.S_ENEMY, creature = creature_com2, ai = ai_com)
+    PLAYER = obj_Actor(1, 1, "hero", settings.S_PLAYER, creature = creature_com1)
+    ENEMY = obj_Actor(15, 10, "dark guard", settings.S_ENEMY, creature = creature_com2, ai = ai_com)
 
     GAME_OBJECTS = [PLAYER, ENEMY]
 

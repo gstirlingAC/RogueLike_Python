@@ -26,8 +26,11 @@ DEFAULT_BG_COLOUR = GREY
 # sprites
 S_PLAYER = pygame.image.load("res/player.png")
 S_ENEMY = pygame.image.load("res/enemy.png")
-S_WALL = pygame.image.load("res/wall_v1.png")
+S_WALL = pygame.image.load("res/wall_v2.jpg")
 S_FLOOR = pygame.image.load("res/floor.png")
 
 # sprite default positions
 PLAYER_POS_DEFAULT = (200, 200)
+
+# game values
+ATT_DAMAGE = 5

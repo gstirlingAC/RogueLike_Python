@@ -7,9 +7,13 @@ http://www1.ayrshire.ac.uk
 Sprites created by: DawnBringer
 https://opengameart.org/content/dawnlike-16x16-universal-rogue-like-tileset-v181
 
-Tutorial 11 -  Creature mortality
-In this tutorial we are going to introduce the concept of death to the game.
-This tutorial will focus on being able to 'kill' the enemy creature.
+Tutorial 12 -  Encapsulation
+In this tutorial we are going to tidy up our existing code and focus on the principle
+of code encapsulation.  We have created a number of classes, however we also have
+chunks of code related to these classes, not being handled by the class itself.  
+We are going to fix that.  In the process of doing this we will also refactor the 'move'
+function and add an 'attack' function in order for the code to read a bit easier and 
+make more sense.
 
 """
 
@@ -45,27 +49,6 @@ class obj_Actor:
     def draw(self):
         SURFACE_MAIN.blit(self.sprite, (self.x * settings.CELL_WIDTH, self.y * settings.CELL_HEIGHT))
 
-    def move(self, dx, dy):
-        tile_is_wall = GAME_MAP[self.x + dx][self.y + dy].block_path == True
-
-        target = None
-
-        for obj in GAME_OBJECTS:
-            if (obj is not self and 
-                obj.x == self.x + dx and 
-                obj.y == self.y + dy and 
-                obj.creature):
-                target = obj
-                break
-        
-        if target:
-            print (self.creature.name_instance + " attacks " + target.creature.name_instance + " for 5 damage!")
-            target.creature.take_damage(5)
-
-        if not tile_is_wall and target is None:
-            self.x += dx
-            self.y += dy
-
 
 # component definitions
 class com_Creature:
@@ -75,6 +58,22 @@ class com_Creature:
         self.maxhp = hp
         self.hp = hp
         self.has_died = has_died
+
+    def move(self, dx, dy):
+        tile_is_wall = GAME_MAP[self.owner.x + dx][self.owner.y + dy].block_path == True
+
+        target = map_check_for_creature(self.owner.x + dx, self.owner.y + dy, self.owner)
+                
+        if target:
+            self.attack(target, settings.ATT_DAMAGE)
+
+        if not tile_is_wall and target is None:
+            self.owner.x += dx
+            self.owner.y += dy
+
+    def attack(self, target, damage):
+        print (self.name_instance + " attacks " + target.creature.name_instance + " for " + str(damage) + " damage!")
+        target.creature.take_damage(damage)
 
     def take_damage(self, damage):
         self.hp -= damage
@@ -100,10 +99,10 @@ class com_AI_Test:
     '''Once per turn, execute'''
 
     def take_turn(self):
-        self.owner.move(libtcod.random_get_int(0, -1, 1), libtcod.random_get_int(0, -1, 1))
+        self.owner.creature.move(libtcod.random_get_int(0, -1, 1), libtcod.random_get_int(0, -1, 1))
 
 
-def death_enemy(enemy):
+def death(enemy):
     '''On death, enemy stops moving'''
     print (enemy.creature.name_instance + " is dead!")
 
@@ -127,6 +126,33 @@ def create_map():
         new_map[settings.MAP_WIDTH-1][y].block_path = True
 
     return new_map
+
+
+def map_check_for_creature(x, y, exclude_obj = None):
+    target = None
+
+    if exclude_obj:
+        # check object list to find creature at that location that isn't excluded
+        for obj in GAME_OBJECTS:
+            if (obj is not exclude_obj and 
+                obj.x == x and 
+                obj.y == y and 
+                obj.creature):
+                target = obj
+
+            if target:
+                return target
+
+    else:
+        # check object list to find any creature at that location
+        for obj in GAME_OBJECTS:
+            if (obj.x == x and 
+                obj.y == y and 
+                obj.creature):
+                target = obj
+
+            if target:
+                return target
 
 
 def draw_map(map_to_draw):
@@ -171,19 +197,19 @@ def game_player_input():
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
-                PLAYER.move(0, -1)
+                PLAYER.creature.move(0, -1)
                 return "player_moved"
 
             if event.key == pygame.K_DOWN:
-                PLAYER.move(0, 1)
+                PLAYER.creature.move(0, 1)
                 return "player_moved"
 
             if event.key == pygame.K_LEFT:
-                PLAYER.move(-1, 0)
+                PLAYER.creature.move(-1, 0)
                 return "player_moved"
 
             if event.key == pygame.K_RIGHT:
-                PLAYER.move(1, 0)
+                PLAYER.creature.move(1, 0)
                 return "player_moved"
 
     return "no action"
@@ -204,7 +230,7 @@ def game_init():
     GAME_MAP = create_map()
 
     creature_com1 = com_Creature("Del")
-    creature_com2 = com_Creature("Rodney", has_died = death_enemy)
+    creature_com2 = com_Creature("Rodney", has_died = death)
 
     ai_com = com_AI_Test()
 

@@ -1,4 +1,5 @@
 import pygame
+import libtcodpy as libtcod
 
 # initialise pygame
 pygame.init()
@@ -27,10 +28,17 @@ DEFAULT_BG_COLOUR = GREY
 S_PLAYER = pygame.image.load("res/player.png")
 S_ENEMY = pygame.image.load("res/enemy.png")
 S_WALL = pygame.image.load("res/wall_v2.jpg")
+S_WALL_EXPLORED = pygame.image.load("res/wall_unseen.png")
 S_FLOOR = pygame.image.load("res/floor.png")
+S_FLOOR_EXPLORED = pygame.image.load("res/floor_unseen.png")
 
 # sprite default positions
 PLAYER_POS_DEFAULT = (200, 200)
 
 # game values
 ATT_DAMAGE = 5
+
+#FOV settings
+FOV_ALGO = libtcod.FOV_BASIC
+FOV_LIGHT_WALLS = True
+FOV_RADIUS = 10

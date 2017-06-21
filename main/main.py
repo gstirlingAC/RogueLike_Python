@@ -7,13 +7,12 @@ http://www1.ayrshire.ac.uk
 Sprites created by: DawnBringer
 https://opengameart.org/content/dawnlike-16x16-universal-rogue-like-tileset-v181
 
-Tutorial 12 -  Encapsulation
-In this tutorial we are going to tidy up our existing code and focus on the principle
-of code encapsulation.  We have created a number of classes, however we also have
-chunks of code related to these classes, not being handled by the class itself.  
-We are going to fix that.  In the process of doing this we will also refactor the 'move'
-function and add an 'attack' function in order for the code to read a bit easier and 
-make more sense.
+Tutorial 13 -  Player field-of-view
+In this tutorial we are going to implement a field-of-view (FOV) system whereby the
+visibility of the map will be determined by the current position of the player.
+We will be using some Doryen library functions to calculate our FOV.  We will implement
+a simple image-swap system to represent tiles which are fully visible and tiles which
+are hidden when out of view.
 
 """
 
@@ -29,6 +28,7 @@ import settings
 class struct_Tile:
     def __init__(self, block_path):
         self.block_path = block_path
+        self.explored = False
 
 
 # object definitions
@@ -47,7 +47,11 @@ class obj_Actor:
             ai.owner = self
 
     def draw(self):
-        SURFACE_MAIN.blit(self.sprite, (self.x * settings.CELL_WIDTH, self.y * settings.CELL_HEIGHT))
+        is_visible = libtcod.map_is_in_fov(FOV_MAP, self.x, self.y)
+
+        if is_visible:
+            SURFACE_MAIN.blit(self.sprite, (self.x * settings.CELL_WIDTH, 
+                                            self.y * settings.CELL_HEIGHT))
 
 
 # component definitions
@@ -125,6 +129,8 @@ def create_map():
         new_map[0][y].block_path = True
         new_map[settings.MAP_WIDTH-1][y].block_path = True
 
+    map_make_fov(new_map)
+
     return new_map
 
 
@@ -155,17 +161,57 @@ def map_check_for_creature(x, y, exclude_obj = None):
                 return target
 
 
+def map_make_fov(incoming_map):
+    global FOV_MAP
+
+    FOV_MAP = libtcod.map_new(settings.MAP_WIDTH, settings.MAP_HEIGHT)
+
+    for y in range(settings.MAP_HEIGHT):
+        for x in range(settings.MAP_WIDTH):
+            libtcod.map_set_properties(FOV_MAP, x, y, 
+                                       not incoming_map[x][y].block_path,
+                                       not incoming_map[x][y].block_path)
+
+
+def map_calculate_fov():
+    global FOV_CALCULATE
+
+    if FOV_CALCULATE:
+        FOV_CALCULATE = False
+        libtcod.map_compute_fov(FOV_MAP, 
+                                PLAYER.x, 
+                                PLAYER.y, 
+                                settings.FOV_RADIUS, 
+                                settings.FOV_LIGHT_WALLS,
+                                settings.FOV_ALGO)
+
+
 def draw_map(map_to_draw):
 
     for x in range(0, settings.MAP_WIDTH):
         for y in range(0, settings.MAP_HEIGHT):
-            if map_to_draw[x][y].block_path == True:
-                # draw wall
-                SURFACE_MAIN.blit(settings.S_WALL, (x * settings.CELL_WIDTH, y * settings.CELL_HEIGHT))
 
-            else:
-                # draw floor
-                SURFACE_MAIN.blit(settings.S_FLOOR, (x * settings.CELL_WIDTH, y * settings.CELL_HEIGHT))
+            is_visible = libtcod.map_is_in_fov(FOV_MAP, x, y)
+
+            if is_visible:
+
+                map_to_draw[x][y].explored = True
+
+                if map_to_draw[x][y].block_path == True:
+                    # draw wall
+                    SURFACE_MAIN.blit(settings.S_WALL, (x * settings.CELL_WIDTH, y * settings.CELL_HEIGHT))
+                else:
+                    # draw floor
+                    SURFACE_MAIN.blit(settings.S_FLOOR, (x * settings.CELL_WIDTH, y * settings.CELL_HEIGHT))
+
+            elif map_to_draw[x][y].explored:
+
+                if map_to_draw[x][y].block_path == True:
+                    # draw wall
+                    SURFACE_MAIN.blit(settings.S_WALL_EXPLORED, (x * settings.CELL_WIDTH, y * settings.CELL_HEIGHT))
+                else:
+                    # draw floor
+                    SURFACE_MAIN.blit(settings.S_FLOOR_EXPLORED, (x * settings.CELL_WIDTH, y * settings.CELL_HEIGHT))
 
 
 # function definitions
@@ -187,6 +233,8 @@ def draw_game():
 
 
 def game_player_input():
+    global FOV_CALCULATE
+
     # get player input
     events = pygame.event.get()
 
@@ -198,18 +246,22 @@ def game_player_input():
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 PLAYER.creature.move(0, -1)
+                FOV_CALCULATE = True
                 return "player_moved"
 
             if event.key == pygame.K_DOWN:
                 PLAYER.creature.move(0, 1)
+                FOV_CALCULATE = True
                 return "player_moved"
 
             if event.key == pygame.K_LEFT:
                 PLAYER.creature.move(-1, 0)
+                FOV_CALCULATE = True
                 return "player_moved"
 
             if event.key == pygame.K_RIGHT:
                 PLAYER.creature.move(1, 0)
+                FOV_CALCULATE = True
                 return "player_moved"
 
     return "no action"
@@ -219,7 +271,7 @@ def game_init():
     '''This function initialises the main window and pygame'''
 
     # make a global (available to all modules) variable to hold the game window (surface)
-    global SURFACE_MAIN, GAME_MAP, PLAYER, ENEMY, GAME_OBJECTS
+    global SURFACE_MAIN, GAME_MAP, PLAYER, ENEMY, GAME_OBJECTS, FOV_CALCULATE
 
     # initialise pygame
     pygame.init()
@@ -228,6 +280,8 @@ def game_init():
     SURFACE_MAIN = pygame.display.set_mode((settings.MAP_WIDTH * settings.CELL_WIDTH, settings.MAP_HEIGHT * settings.CELL_HEIGHT))
 
     GAME_MAP = create_map()
+
+    FOV_CALCULATE = True
 
     creature_com1 = com_Creature("Del")
     creature_com2 = com_Creature("Rodney", has_died = death)
@@ -256,6 +310,8 @@ def game_main_loop():
         
         # handle player input
         player_action = game_player_input()
+
+        map_calculate_fov()
 
         if player_action == "QUIT":
             game_quit = True

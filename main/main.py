@@ -7,12 +7,12 @@ http://www1.ayrshire.ac.uk
 Sprites created by: DawnBringer
 https://opengameart.org/content/dawnlike-16x16-universal-rogue-like-tileset-v181
 
-Tutorial 13 -  Player field-of-view
-In this tutorial we are going to implement a field-of-view (FOV) system whereby the
-visibility of the map will be determined by the current position of the player.
-We will be using some Doryen library functions to calculate our FOV.  We will implement
-a simple image-swap system to represent tiles which are fully visible and tiles which
-are hidden when out of view.
+Tutorial 14 -  Display text on-screen and FPS
+In this tutorial we are going to lay the groundwork to have the text which we have,
+so far, been displaying in the console window, display in the actual game window.
+We will set up a text renderer, and have it only display the FPS clock for now.  
+We obviously will also have to set up the FPS clock and set a frame-rate limit 
+for the game.
 
 """
 
@@ -215,6 +215,23 @@ def draw_map(map_to_draw):
 
 
 # function definitions
+def draw_text(display_surface, text_to_display, T_coords, text_colour):
+    '''This function takes in some text, and displays it on the reference surface'''
+    
+    text_surf, text_rect = get_text_objs(text_to_display, text_colour)
+
+    text_rect.topleft = T_coords
+
+    display_surface.blit(text_surf, text_rect)
+
+
+# helper functions
+def get_text_objs(incoming_text, incoming_colour):
+    text_surface = settings.FONT_DEBUG_MESSAGE.render(incoming_text, False, incoming_colour)
+
+    return text_surface, text_surface.get_rect()
+
+
 def draw_game():
     '''We will use this function to draw objects to the surface'''
 
@@ -228,8 +245,13 @@ def draw_game():
     for obj in GAME_OBJECTS:
         obj.draw()
 
+    draw_debug()
+
     # update the display
     pygame.display.flip()
+
+def draw_debug():
+    draw_text(SURFACE_MAIN, "FPS: " + str(int(CLOCK.get_fps())), (0,0), settings.RED)
 
 
 def game_player_input():
@@ -271,10 +293,12 @@ def game_init():
     '''This function initialises the main window and pygame'''
 
     # make a global (available to all modules) variable to hold the game window (surface)
-    global SURFACE_MAIN, GAME_MAP, PLAYER, ENEMY, GAME_OBJECTS, FOV_CALCULATE
+    global SURFACE_MAIN, GAME_MAP, PLAYER, ENEMY, GAME_OBJECTS, FOV_CALCULATE, CLOCK
 
     # initialise pygame
     pygame.init()
+
+    CLOCK = pygame.time.Clock()
 
     #create window (surface)
     SURFACE_MAIN = pygame.display.set_mode((settings.MAP_WIDTH * settings.CELL_WIDTH, settings.MAP_HEIGHT * settings.CELL_HEIGHT))
@@ -323,6 +347,8 @@ def game_main_loop():
 
         # draw the game
         draw_game()
+
+        CLOCK.tick(settings.G_FPS)
 
     # quit the game
     pygame.quit()

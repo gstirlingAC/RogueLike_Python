@@ -12,6 +12,9 @@ SURFACE_HEIGHT = 600
 CELL_WIDTH = 32
 CELL_HEIGHT = 32
 
+#FPS LIMIT
+G_FPS = 60
+
 # map variables
 MAP_WIDTH = 20
 MAP_HEIGHT = 20
@@ -20,6 +23,7 @@ MAP_HEIGHT = 20
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 GREY = (100, 100, 100)
+RED = (255, 0, 0)
 
 # game colours
 DEFAULT_BG_COLOUR = GREY
@@ -42,3 +46,6 @@ ATT_DAMAGE = 5
 FOV_ALGO = libtcod.FOV_BASIC
 FOV_LIGHT_WALLS = True
 FOV_RADIUS = 10
+
+# Font settings
+FONT_DEBUG_MESSAGE = pygame.font.Font("res/joystix.ttf", 20)

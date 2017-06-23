@@ -48,4 +48,8 @@ FOV_LIGHT_WALLS = True
 FOV_RADIUS = 10
 
 # Font settings
-FONT_DEBUG_MESSAGE = pygame.font.Font("res/joystix.ttf", 20)
+FONT_DEBUG_MESSAGE = pygame.font.Font("res/joystix.ttf", 16)
+FONT_MESSAGE_TEXT = pygame.font.Font("res/joystix.ttf", 12)
+
+# Message defaults
+NUM_MESSAGES = 4

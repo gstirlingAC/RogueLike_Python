@@ -7,12 +7,11 @@ http://www1.ayrshire.ac.uk
 Sprites created by: DawnBringer
 https://opengameart.org/content/dawnlike-16x16-universal-rogue-like-tileset-v181
 
-Tutorial 14 -  Display text on-screen and FPS
-In this tutorial we are going to lay the groundwork to have the text which we have,
-so far, been displaying in the console window, display in the actual game window.
-We will set up a text renderer, and have it only display the FPS clock for now.  
-We obviously will also have to set up the FPS clock and set a frame-rate limit 
-for the game.
+Tutorial 15 -  In-game message console
+Continuing on from the previous tutorial we are going to finish off creating the
+in-game message console.  By the end of this tutorial the messages which previously
+were printed to the console will now display on-screen.  We will limit the number of
+messages on-screen to 4, with older messages disappearing.
 
 """
 
@@ -76,12 +75,13 @@ class com_Creature:
             self.owner.y += dy
 
     def attack(self, target, damage):
-        print (self.name_instance + " attacks " + target.creature.name_instance + " for " + str(damage) + " damage!")
+        game_message (self.name_instance + " attacks " + target.creature.name_instance + " for " + str(damage) + " damage!", settings.WHITE)
+        
         target.creature.take_damage(damage)
 
     def take_damage(self, damage):
         self.hp -= damage
-        print (self.name_instance + "'s health is " + str(self.hp) + "/" + str(self.maxhp))
+        game_message (self.name_instance + "'s health is " + str(self.hp) + "/" + str(self.maxhp), settings.RED)
 
         if self.hp <= 0:
             if self.has_died is not None:
@@ -108,7 +108,7 @@ class com_AI_Test:
 
 def death(enemy):
     '''On death, enemy stops moving'''
-    print (enemy.creature.name_instance + " is dead!")
+    game_message (enemy.creature.name_instance + " is dead!", settings.GREY)
 
     enemy.creature = None
     enemy.ai = None
@@ -215,10 +215,10 @@ def draw_map(map_to_draw):
 
 
 # function definitions
-def draw_text(display_surface, text_to_display, T_coords, text_colour):
+def draw_text(display_surface, text_to_display, T_coords, text_colour, back_colour = None):
     '''This function takes in some text, and displays it on the reference surface'''
     
-    text_surf, text_rect = get_text_objs(text_to_display, text_colour)
+    text_surf, text_rect = get_text_objs(text_to_display, text_colour, back_colour)
 
     text_rect.topleft = T_coords
 
@@ -226,10 +226,19 @@ def draw_text(display_surface, text_to_display, T_coords, text_colour):
 
 
 # helper functions
-def get_text_objs(incoming_text, incoming_colour):
-    text_surface = settings.FONT_DEBUG_MESSAGE.render(incoming_text, False, incoming_colour)
-
+def get_text_objs(incoming_text, incoming_colour, incoming_bg):
+    if incoming_bg:
+        text_surface = settings.FONT_DEBUG_MESSAGE.render(incoming_text, False, incoming_colour, incoming_bg)
+    else:
+        text_surface = settings.FONT_DEBUG_MESSAGE.render(incoming_text, False, incoming_colour)
     return text_surface, text_surface.get_rect()
+
+
+def get_text_height(font):
+    font_obj = font.render('a', False, (0, 0, 0))
+    font_rect = font_obj.get_rect()
+
+    return font_rect.height
 
 
 def draw_game():
@@ -246,12 +255,31 @@ def draw_game():
         obj.draw()
 
     draw_debug()
+    draw_messages()
 
     # update the display
     pygame.display.flip()
 
+
+def draw_messages():
+    if len(GAME_MESSAGES) <= settings.NUM_MESSAGES: 
+        to_draw = GAME_MESSAGES
+    else:
+        to_draw = GAME_MESSAGES[-settings.NUM_MESSAGES:]
+
+    text_height = get_text_height(settings.FONT_MESSAGE_TEXT)
+
+    start_y = (settings.MAP_HEIGHT * settings.CELL_HEIGHT - (settings.NUM_MESSAGES * text_height)) - 10
+
+    i = 0
+
+    for message, colour in to_draw:
+        draw_text(SURFACE_MAIN, message, (0, start_y + (i * text_height)), colour, settings.BLACK)
+        i += 1
+
+
 def draw_debug():
-    draw_text(SURFACE_MAIN, "FPS: " + str(int(CLOCK.get_fps())), (0,0), settings.RED)
+    draw_text(SURFACE_MAIN, "FPS: " + str(int(CLOCK.get_fps())), (0,0), settings.WHITE, settings.BLACK)
 
 
 def game_player_input():
@@ -289,11 +317,15 @@ def game_player_input():
     return "no action"
 
 
+def game_message(game_msg, msg_colour):
+    GAME_MESSAGES.append((game_msg, msg_colour))
+
+
 def game_init():
     '''This function initialises the main window and pygame'''
 
     # make a global (available to all modules) variable to hold the game window (surface)
-    global SURFACE_MAIN, GAME_MAP, PLAYER, ENEMY, GAME_OBJECTS, FOV_CALCULATE, CLOCK
+    global SURFACE_MAIN, GAME_MAP, PLAYER, ENEMY, GAME_OBJECTS, FOV_CALCULATE, CLOCK, GAME_MESSAGES
 
     # initialise pygame
     pygame.init()
@@ -304,6 +336,8 @@ def game_init():
     SURFACE_MAIN = pygame.display.set_mode((settings.MAP_WIDTH * settings.CELL_WIDTH, settings.MAP_HEIGHT * settings.CELL_HEIGHT))
 
     GAME_MAP = create_map()
+
+    GAME_MESSAGES = []
 
     FOV_CALCULATE = True
 
